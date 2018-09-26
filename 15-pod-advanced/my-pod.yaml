@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod
+spec:
+  containers:
+  - name: my-container
+    image: busybox
+    imagePullPolicy: IfNotPresent
+    stdin: true
+    tty: true
+    volumeMounts:
+    - name: my-pod-vol
+      mountPath: "/mypod-vol"
+      readOnly: true
+  volumes:
+  - name: my-pod-vol
+    projected:
+      sources:
+      - secret:
+          name: mysecret

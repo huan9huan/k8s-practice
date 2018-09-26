@@ -1,10 +1,9 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: pod-tty
+  name: pod-share
 
 spec:
-  hostPID: true
   shareProcessNamespace: true
   containers:
     - name: shell

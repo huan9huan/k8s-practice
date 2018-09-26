@@ -1,8 +1,12 @@
-# pod - 2 学习笔记 - 
+# pod (2) - 
+
+## 学习目的：
+> 理解Secret等核心projected volume如何使用，从而理解在应用中如何注入配置
+> 理解liveness等常见的k8s设计机制(都是套路)
 
 ## 链接：https://time.geekbang.org/column/article/40466
 
-## task1 : 构造一个secret 对象并找到其内容
+## Task1 : 构造一个secret 对象并找到其内容
 
 假设需要构造一个name是mysecret账户，用户名为root，密码为123456
 
@@ -76,3 +80,5 @@ kubectl describe pods test-liveness-exec
 ```
 
 **注意到events中出现了 Unhealthy/Pulled/Created/Killing/Started 序列，说明被重启成功**
+
+**todo:** 增加保活逻辑

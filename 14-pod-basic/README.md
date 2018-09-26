@@ -2,6 +2,11 @@
 
 ## 链接：https://time.geekbang.org/column/article/40366
 
+## 学习目的
+> 理解pod的核心概念
+> 理解k8s的诊断机制
+> 训练从docker cli到kube cli的过度
+
 ## task 1: 不拉取image的时候的效果
 pod中改变 imagePullPolicy字段
 ```

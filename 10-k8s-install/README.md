@@ -1,4 +1,7 @@
-# k8s安装的翻墙攻略
+# Kubernetes一键部署利器：kubeadm
+## 学习链接：https://time.geekbang.org/column/article/39712
+
+## 学习目的：通过k8s安装的翻墙攻略，理解kube-xxx的安装细节
 
 学到了k8s的安装，就碰到了棘手的翻墙问题（我是在阿里云上CentOS实验和学习的），核心问题是两个：
 > 1. kubeadm的安装，因为yum/apt源使用packages.cloud.google.com而无法访问的问题

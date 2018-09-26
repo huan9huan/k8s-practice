@@ -1,7 +1,7 @@
 # pod (2) - 
 
 ## 学习目的：
-> 理解Secret等核心projected volume如何使用，从而理解在应用中如何注入配置
+> 理解Secret等核心projected volume如何使用，从而理解在应用中如何注入配置   
 > 理解liveness等常见的k8s设计机制(都是套路)
 
 ## 链接：https://time.geekbang.org/column/article/40466

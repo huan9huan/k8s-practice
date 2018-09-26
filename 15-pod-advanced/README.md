@@ -1,6 +1,6 @@
 # pod - 2 学习笔记 - 
 
-## 链接：https://time.geekbang.org/column/article/40366
+## 链接：https://time.geekbang.org/column/article/40466
 
 ## task1 : 构造一个secret 对象并找到其内容
 
@@ -63,3 +63,16 @@ pass  user
 / # cat /mypod-vol/user 
 root 
 ```
+
+## Task 2: 使用liveness保活关键进程
+创建 pod yaml文件： liveness-pod.yaml
+
+```
+kubectl delete -f ./liveness-pod.yaml
+kubectl create -f ./liveness-pod.yaml
+# sleep for a while
+kubectl describe pods test-liveness-exec
+# sleep for a while for restart
+```
+
+**注意到events中出现了 Unhealthy/Pulled/Created/Killing/Started 序列，说明被重启成功**

@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-tty
+
+spec:
+  hostPID: true
+  shareProcessNamespace: true
+  containers:
+    - name: shell
+      imagePullPolicy: IfNotPresent
+      image: busybox
+      tty: true
+      stdin: true

@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: simple-pod
+
+spec:
+  shareProcessNamespace: true
+  containers:
+    - name: shell
+      imagePullPolicy: IfNotPresent
+      image: busybox
+      tty: true
+      stdin: true
+
+    - name: nginx
+      imagePullPolicy: IfNotPresent
+      image: nginx:1.7.9

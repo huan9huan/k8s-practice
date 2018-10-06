@@ -79,3 +79,35 @@ nginx-deployment-c4747d96c    2         2         2         8m
 $ kubectl rollout history deployment/nginx-deployment
 
 ```
+
+## 拓展练习 - 验证负载均衡是否有效
+
+对上述生成的结构，list出pod，并删除一些pod，观察status
+
+```
+## 首先使用-w观察rs的状态
+kubectl get rs -w
+
+## delete一个pod
+ get pods
+NAME                               READY     STATUS    RESTARTS   AGE
+nginx-deployment-c4747d96c-bqvh9   1/1       Running   0          23m
+nginx-deployment-c4747d96c-tgnb2   1/1       Running   0          2m
+$ kubectl delete pod nginx-deployment-c4747d96c-bqvh9
+
+NAME                          DESIRED   CURRENT   READY     AGE
+nginx-deployment-595696685f   0         0         0         17m
+nginx-deployment-75675f5897   0         0         0         30m
+nginx-deployment-c4747d96c    2         2         2         23m
+nginx-deployment-c4747d96c   2         1         1         24m
+nginx-deployment-c4747d96c   2         2         1         24m
+nginx-deployment-c4747d96c   2         2         2         24m
+
+```
+
+注意到这里pod被删除后，rs会自动更新状态并生成新的的pod
+
+## 清理
+```
+kubectl delete Deployment nginx-deployment
+```

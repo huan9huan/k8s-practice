@@ -35,7 +35,7 @@ yum makecache
 yum -y install kubelet kubeadm kubectl 
 kubelet --version
 ```
-注意我这里的版本是 v1.11.3，下面会用。
+注意我这里的版本是 v1.12.1，下面会用。
 
 ## Problem 2: k8s.gcr.io 访问问题
 因为k8s的Static Pod启动需要从 k8s.gcr.io 上拉取必要的镜像，但是这个网站上被封掉了，所以需从别的镜像中拉取这些镜像，然后tag成为 k8s.gcr.io 开头，然后 dockerd就可以从本地拉取了镜像。国内的镜像我使用了 `registry.cn-hangzhou.aliyuncs.com/google_containers` 看起来同步的不错。
@@ -44,7 +44,7 @@ kubelet --version
 ```
 MY_REGISTRY=registry.cn-hangzhou.aliyuncs.com/google_containers
 #registry.cn-hangzhou.aliyuncs.com/google-images
-VERSION=v1.11.3
+VERSION=v1.12.1
 
 ## 拉取镜像
 docker pull ${MY_REGISTRY}/kube-apiserver-amd64:${VERSION}
@@ -71,12 +71,16 @@ docker tag ${MY_REGISTRY}/pause:3.1 k8s.gcr.io/pause:3.1
 > 1. 不同的版本需要特定version的image，如果长期跟踪kubeadm和kubectl，要注意维护这个image列表  
 > 2. 如果使用代理方案，注意 `http_proxy=<proxy address>:<proxy port> docker pull` 并不能生效，而是要让docker daemon感知到proxy的存在。这是一个坑点，但不是docker的设计缺陷，而是image pull的操作是docker服务进程管理的，当然代理要让这个进程使用。
 
-### Problem 3: 一个小尾巴，关闭版本探测
+### __Problem 3: 一个小尾巴，关闭版本探测__
 ```
-kubeadm init --kubernetes-version=v1.11.3
+kubeadm init --kubernetes-version=v1.12.1
 ```
-否则kubeadm会访问一个墙外的文件，找这个版本， 也会卡住。
+__否则kubeadm会访问一个墙外的文件，找这个版本， 也会卡住。__
+
+**update 2018/10/08: 这个问题好像在1.12中被fix了，也就是说如果无法远程获取版本号，会探测本地的版本号。**
+
 
 然后就可以愉快的玩k8s了，真呀嘛真好用，不浪费这一番折腾。
+
 
 ### 墙很害人，但是墙让人更加强壮，不会翻墙，就被淘汰

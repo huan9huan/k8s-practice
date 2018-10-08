@@ -109,4 +109,14 @@ kubectl run -i --tty --image busybox dns-test --restart=Never --rm /bin/sh
 / # ping ss-web-0.nginx.default.svc.cluster.local
 PING ss-web-0.nginx.default.svc.cluster.local (20.0.0.10): 56 data bytes
 IP应该不变，是20.0.0.10，状态被维护到了
+
+nslookup ss-web-0.nginx.default.svc.cluster.local
+```
+
+## 清理
+
+```
+kubectl delete -f ss-web.yaml
+kubectl delete -f svc.yaml
+
 ```

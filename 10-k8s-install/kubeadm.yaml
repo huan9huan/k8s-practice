@@ -1,4 +1,4 @@
 apiVersion: kubeadm.k8s.io/v1alpha1
-kind: MasterConfiguration
-ubernetesVersion: "stable-1.11"
+kind: InitConfiguration
+kubernetesVersion: "v1.12.1"
 imageRepository: registry.cn-hangzhou.aliyuncs.com/google_containers

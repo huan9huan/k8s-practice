@@ -1,19 +1,14 @@
 # Kubernetes一键部署利器：kubeadm
+
 ## 学习链接：https://time.geekbang.org/column/article/39712
 
-## 学习目的：通过k8s安装的翻墙攻略，理解kube-xxx的安装细节
+## 学习目的：
+> 通过k8s安装的翻墙攻略，理解kube-xxx的安装细节
+> 
 
-学到了k8s的安装，就碰到了棘手的翻墙问题（我是在阿里云上CentOS实验和学习的），核心问题是两个：
-> 1. kubeadm的安装，因为yum/apt源使用packages.cloud.google.com而无法访问的问题
-> 2. gcr.io 无法访问从而造成k8s启动所必须的的images无法拉取
-> 3. kubeadm init的时候，远程探测版本撞墙问题
+## step 1: kubeadm的yum安装
 
-一个个解决。
-
-## Problem 1: kubeadm的yum安装
-方法尝试用了两个，一个是shadowsocks代理（前提你要有国外的vps），一个是使用aliyun自己的yum镜像，后者相对简单一些。
-
-按照通常的方法，要求加入一个kubernetes.repo的源:
+### step 1.1: 按照通常的方法，要求加入一个kubernetes.repo的源:
 
 ```
 cat <<EOF > /etc/yum.repos.d/kubernetes.repo
@@ -30,57 +25,83 @@ yum clean all
 yum makecache
 ```
 
-然后安装 kubeadm和kubelet应该成功：
+安装 kubeadm和kubelet应该成功：
 ```
 yum -y install kubelet kubeadm kubectl 
 kubelet --version
 ```
-注意我这里的版本是 v1.12.1，下面会用。
+注意我这里的版本是 v1.12.1，记下这版本号，下面会用。
 
-## Problem 2: k8s.gcr.io 访问问题
-因为k8s的Static Pod启动需要从 k8s.gcr.io 上拉取必要的镜像，但是这个网站上被封掉了，所以需从别的镜像中拉取这些镜像，然后tag成为 k8s.gcr.io 开头，然后 dockerd就可以从本地拉取了镜像。国内的镜像我使用了 `registry.cn-hangzhou.aliyuncs.com/google_containers` 看起来同步的不错。
+### step 1.2: 配置k8s.gcr.io的镜像
 
-运行脚本是这样的：
+因为k8s的Static Pod启动需要从 k8s.gcr.io 上拉取必要的镜像，但是这个网站上被封掉了，所以需从别的镜像中拉取这些镜像，然后tag成为 k8s.gcr.io 开头，然后 dockerd就可以从本地拉取了镜像。国内的镜像我使用了 `registry.cn-hangzhou.aliyuncs.com/google_containers` 看起来同步的不错
+
+脚本是：
 ```
-MY_REGISTRY=registry.cn-hangzhou.aliyuncs.com/google_containers
-#registry.cn-hangzhou.aliyuncs.com/google-images
 VERSION=v1.12.1
+ETCD_VERSION=3.2.24
+COREDNS_VERSION=1.2.2
+PAUSE_VERSION=3.1
+MY_REGISTRY=registry.cn-hangzhou.aliyuncs.com/google_containers
 
 ## 拉取镜像
-docker pull ${MY_REGISTRY}/kube-apiserver-amd64:${VERSION}
-docker pull ${MY_REGISTRY}/kube-controller-manager-amd64:${VERSION}
-docker pull ${MY_REGISTRY}/kube-scheduler-amd64:${VERSION}
-docker pull ${MY_REGISTRY}/kube-proxy-amd64:${VERSION}
-docker pull ${MY_REGISTRY}/etcd-amd64:3.2.18
-docker pull ${MY_REGISTRY}/pause-amd64:3.1
-docker pull ${MY_REGISTRY}/coredns:1.1.3
-docker pull ${MY_REGISTRY}/pause:3.1
+docker pull ${MY_REGISTRY}/kube-apiserver:${VERSION}
+docker pull ${MY_REGISTRY}/kube-controller-manager:${VERSION}
+docker pull ${MY_REGISTRY}/kube-scheduler:${VERSION}
+docker pull ${MY_REGISTRY}/kube-proxy:${VERSION}
+docker pull ${MY_REGISTRY}/etcd:${ETCD_VERSION}
+docker pull ${MY_REGISTRY}/coredns:${COREDNS_VERSION}
+docker pull ${MY_REGISTRY}/pause:${PAUSE_VERSION}
 
 ## 添加Tag
-docker tag ${MY_REGISTRY}/kube-apiserver-amd64:${VERSION} k8s.gcr.io/kube-apiserver-amd64:${VERSION}
-docker tag ${MY_REGISTRY}/kube-scheduler-amd64:${VERSION} k8s.gcr.io/kube-scheduler-amd64:${VERSION}
-docker tag ${MY_REGISTRY}/kube-controller-manager-amd64:${VERSION} k8s.gcr.io/kube-controller-manager-amd64:${VERSION}
-docker tag ${MY_REGISTRY}/kube-proxy-amd64:${VERSION} k8s.gcr.io/kube-proxy-amd64:${VERSION}
-docker tag ${MY_REGISTRY}/etcd-amd64:3.2.18 k8s.gcr.io/etcd-amd64:3.2.18
-docker tag ${MY_REGISTRY}/pause-amd64:3.1 k8s.gcr.io/pause-amd64:3.1
-docker tag ${MY_REGISTRY}/coredns:1.1.3 k8s.gcr.io/coredns:1.1.3
-docker tag ${MY_REGISTRY}/pause:3.1 k8s.gcr.io/pause:3.1
+docker tag ${MY_REGISTRY}/kube-apiserver:${VERSION} k8s.gcr.io/kube-apiserver:${VERSION}
+docker tag ${MY_REGISTRY}/kube-scheduler:${VERSION} k8s.gcr.io/kube-scheduler:${VERSION}
+docker tag ${MY_REGISTRY}/kube-controller-manager:${VERSION} k8s.gcr.io/kube-controller-manager:${VERSION}
+docker tag ${MY_REGISTRY}/kube-proxy:${VERSION} k8s.gcr.io/kube-proxy:${VERSION}
+docker tag ${MY_REGISTRY}/etcd:${ETCD_VERSION} k8s.gcr.io/etcd:${ETCD_VERSION}
+docker tag ${MY_REGISTRY}/coredns:${COREDNS_VERSION} k8s.gcr.io/coredns:${COREDNS_VERSION}
+
+docker tag ${MY_REGISTRY}/pause:${PAUSE_VERSION} k8s.gcr.io/pause:${PAUSE_VERSION}
 ```
 
-注意：
-> 1. 不同的版本需要特定version的image，如果长期跟踪kubeadm和kubectl，要注意维护这个image列表  
-> 2. 如果使用代理方案，注意 `http_proxy=<proxy address>:<proxy port> docker pull` 并不能生效，而是要让docker daemon感知到proxy的存在。这是一个坑点，但不是docker的设计缺陷，而是image pull的操作是docker服务进程管理的，当然代理要让这个进程使用。
-
-### __Problem 3: 一个小尾巴，关闭版本探测__
+### step 1.3： 使用kubeadm初始化kubernetes
 ```
-kubeadm init --kubernetes-version=v1.12.1
+kubeadm init --config kubeadm.yaml
 ```
-__否则kubeadm会访问一个墙外的文件，找这个版本， 也会卡住。__
 
-**update 2018/10/08: 这个问题好像在1.12中被fix了，也就是说如果无法远程获取版本号，会探测本地的版本号。**
+其中 kubeadm.yaml是
+```
+apiVersion: kubeadm.k8s.io/v1alpha3
+kind: InitConfiguration
+kubernetesVersion: "v1.12.1"
+imageRepository: registry.cn-hangzhou.aliyuncs.com/google_containers
+```
 
+备忘
+```
+ kubeadm join 106.14.93.74:6443 --token p7jj4u.zdh7j96t6zwqi1z7 --discovery-token-ca-cert-hash sha256:83d3f0240d81664a5033193ff5580eb89da61e5f8e4b263caf99453ff61e1a0a
+ ```
 
-然后就可以愉快的玩k8s了，真呀嘛真好用，不浪费这一番折腾。
+```
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+```
 
+## step 2: 安装网络插件
 
-### 墙很害人，但是墙让人更加强壮，不会翻墙，就被淘汰
+```
+kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')&env.IPALLOC_RANGE=20.0.0.0/8"
+
+kubectl get pods -w --all-namespaces
+NAMESPACE     NAME                            READY   STATUS             RESTARTS   AGE
+kube-system   coredns-576cbf47c7-l9lkw        0/1     Pending            0          9m21s
+kube-system   coredns-576cbf47c7-wf87f        0/1     Pending            0          9m21s
+
+===>
+
+kube-system   coredns-576cbf47c7-l9lkw   1/1   Running   0     13m
+kube-system   coredns-576cbf47c7-wf87f   1/1   Running   0     13m
+```
+
+## step 3: 安装一个worker node节点

@@ -77,23 +77,28 @@ kubernetesVersion: "v1.12.1"
 imageRepository: registry.cn-hangzhou.aliyuncs.com/google_containers
 ```
 
-备忘
-```
- kubeadm join 106.14.93.74:6443 --token p7jj4u.zdh7j96t6zwqi1z7 --discovery-token-ca-cert-hash sha256:83d3f0240d81664a5033193ff5580eb89da61e5f8e4b263caf99453ff61e1a0a
- ```
-
+并根据kubeadm的数据，配置config
 ```
 mkdir -p $HOME/.kube
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
 
+问题记录：   
+> 如果没有配置config，可能无法运行kubectl  
+
 ## step 2: 安装网络插件
 
 ```
-kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')&env.IPALLOC_RANGE=20.0.0.0/8"
 
-kubectl get pods -w --all-namespaces
+$ kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')&env.IPALLOC_RANGE=20.0.0.0/8"
+
+# or use romana
+$ kubectl apply -f https://raw.githubusercontent.com/romana/romana/master/containerize/specs/romana-kubeadm.yml
+
+$ kubectl delete -f https://raw.githubusercontent.com/romana/romana/master/containerize/specs/romana-kubeadm.yml
+
+$ kubectl get pods -w --all-namespaces
 NAMESPACE     NAME                            READY   STATUS             RESTARTS   AGE
 kube-system   coredns-576cbf47c7-l9lkw        0/1     Pending            0          9m21s
 kube-system   coredns-576cbf47c7-wf87f        0/1     Pending            0          9m21s
@@ -102,6 +107,69 @@ kube-system   coredns-576cbf47c7-wf87f        0/1     Pending            0      
 
 kube-system   coredns-576cbf47c7-l9lkw   1/1   Running   0     13m
 kube-system   coredns-576cbf47c7-wf87f   1/1   Running   0     13m
+
+
+$ kubectl describe pods -n kube-system
 ```
 
 ## step 3: 安装一个worker node节点
+
+### Step 3.1 安装kubeadm，参照 Step 1.1
+
+### Step 3.2 加入节点
+```
+$ kubeadm join 106.14.93.74:6443 --token 6s7xwb.hqoigncyjgmdzzi3 --discovery-token-ca-cert-hash sha256:a47620e57b2cc67dbdac5c639038c723ff9bdc32284c29d9d5084016fca9115e
+
+service kubelet status -l
+```
+
+### Step 3.3 检查
+```
+# in master
+$ kubectl get nodes -w
+
+# in node:
+$ systemctl restart kubelet
+$ service kubelet status -l
+```
+
+问题记录
+> master的ip不可以随便
+> 要注意检查端口是否可通
+> 可能cni无法初始化，fix的方法：
+```
+$ cat /etc/cni/net.d/10-weave.conf
+{
+    "name": "weave",
+    "type": "weave-net",
+    "hairpinMode": true
+}
+```
+
+## Step 4: 让master也是一个节点
+```
+$ kubectl describe node mysql
+...
+Taints:             node-role.kubernetes.io/master:NoSchedule
+...
+
+$ kubectl taint nodes --all node-role.kubernetes.io/master-
+node/mysql untainted 
+
+# 确认
+$ kubectl describe node mysql
+Taints： <None>
+
+```
+
+## Step 5: 安装Rook从而支持Ceph
+
+```
+$ kubectl apply -f https://raw.githubusercontent.com/rook/rook/master/cluster/examples/kubernetes/ceph/operator.yaml
+
+$ kubectl apply -f https://raw.githubusercontent.com/rook/rook/master/cluster/examples/kubernetes/ceph/cluster.yaml
+
+$ kubectl get pods --all-namespaces
+$ kubectl get pods -n rook-ceph-system
+$ kubectl get pods -n rook-ceph
+```

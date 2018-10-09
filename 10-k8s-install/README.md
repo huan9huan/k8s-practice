@@ -4,7 +4,6 @@
 
 ## 学习目的：
 > 通过k8s安装的翻墙攻略，理解kube-xxx的安装细节
-> 
 
 ## step 1: kubeadm的yum安装
 
@@ -66,19 +65,13 @@ docker tag ${MY_REGISTRY}/pause:${PAUSE_VERSION} k8s.gcr.io/pause:${PAUSE_VERSIO
 
 ### step 1.3： 使用kubeadm初始化kubernetes
 ```
-kubeadm init --config kubeadm.yaml
-```
-
-其中 kubeadm.yaml是
-```
-apiVersion: kubeadm.k8s.io/v1alpha3
-kind: InitConfiguration
-kubernetesVersion: "v1.12.1"
-imageRepository: registry.cn-hangzhou.aliyuncs.com/google_containers
+$ kubeadm reset -f
+$ kubeadm init --pod-network-cidr=172.16.0.0/12
 ```
 
 并根据kubeadm的数据，配置config
 ```
+rm -fr ~/.kube
 mkdir -p $HOME/.kube
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
@@ -86,17 +79,23 @@ sudo chown $(id -u):$(id -g) $HOME/.kube/config
 
 问题记录：   
 > 如果没有配置config，可能无法运行kubectl  
+> 确保自定义podCidr
+```
+$ kubectl cluster-info dump | grep -i cidr
+```
 
 ## step 2: 安装网络插件
 
 ```
-
 $ kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')&env.IPALLOC_RANGE=20.0.0.0/8"
 
-# or use romana
+<!-- # or use romana
 $ kubectl apply -f https://raw.githubusercontent.com/romana/romana/master/containerize/specs/romana-kubeadm.yml
 
-$ kubectl delete -f https://raw.githubusercontent.com/romana/romana/master/containerize/specs/romana-kubeadm.yml
+$ kubectl delete -f https://raw.githubusercontent.com/romana/romana/master/containerize/specs/romana-kubeadm.yml -->
+
+$ kubectl logs -f weave-net-4bnp5 weave -n kube-system
+$ kubectl exec -n kube-system weave-net-4bnp5 -c weave -- /home/weave/weave --local status
 
 $ kubectl get pods -w --all-namespaces
 NAMESPACE     NAME                            READY   STATUS             RESTARTS   AGE
@@ -118,10 +117,12 @@ $ kubectl describe pods -n kube-system
 
 ### Step 3.2 加入节点
 ```
-$ kubeadm join 106.14.93.74:6443 --token 6s7xwb.hqoigncyjgmdzzi3 --discovery-token-ca-cert-hash sha256:a47620e57b2cc67dbdac5c639038c723ff9bdc32284c29d9d5084016fca9115e
+$ kubeadm join 139.196.145.43:6443 --token ohmeqe.z8md9i159lmxl40k --discovery-token-ca-cert-hash sha256:cc05824d2e94e5699fd9164f638d88d027167e94842854e6d5fba9185fb6acc5
 
 service kubelet status -l
 ```
+
+坑点1：打开端口6443，否则会造成nodelost
 
 ### Step 3.3 检查
 ```
@@ -172,4 +173,17 @@ $ kubectl apply -f https://raw.githubusercontent.com/rook/rook/master/cluster/ex
 $ kubectl get pods --all-namespaces
 $ kubectl get pods -n rook-ceph-system
 $ kubectl get pods -n rook-ceph
+```
+
+## 清理重置系统的命令
+慎用！！
+```
+$ kubeadm reset -f
+$ rm -fr ~/.kube
+```
+
+## 坑
+### 关闭掉firewalld
+```
+service firewalld status
 ```

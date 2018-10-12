@@ -1,0 +1,16 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: cron-pi
+spec:
+  schedule: "*/1 * * * *"
+  jobTemplate:
+    spec: # job
+      template:
+        spec: # pod
+          restartPolicy: OnFailure
+          containers:
+          - name: pi
+            image: resouer/ubuntu-bc
+            command: ["sh", "-c", "date;echo 'scale=1000; 4 * a(1)'|bc -l"]
+      

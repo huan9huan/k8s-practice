@@ -6,6 +6,7 @@
 > 用案例理解job基本用法，错误重试机制
 > 理解job-controller的控制器运行模式
 > CronJob控制器的结构
+> 理解job的常见的部署和使用方式
 
 ## 一个计算pi的job
 ```
@@ -23,7 +24,6 @@ Events:
 $ kubectl log pi-lmqhb
 
 $ kubectl delete -f ./pi.yaml 
-
 ```
 
 ## 尝试使用cron job
@@ -59,3 +59,4 @@ $ kubectl delete -f ./cronjob.yaml
 
 一些关键的注意点：  
 > cronjob controller会每分钟生成一个job，每个job有会生成一个pod，于是pod就越来越多
+

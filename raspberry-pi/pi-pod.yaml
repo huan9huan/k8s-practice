@@ -11,6 +11,6 @@ spec:
       image: busybox
       tty: true
       stdin: true
-      
-  nodeSelectors:
+
+  nodeSelector:
       device: pi

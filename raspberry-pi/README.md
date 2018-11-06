@@ -5,3 +5,8 @@
 ```
 kubectl label nodes yixin9001 device=pi
 ```
+
+### debug
+```
+journalctl -u kubelet
+```

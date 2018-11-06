@@ -2,6 +2,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: pi-pod
+  namespace: pi
 
 spec:
   containers:
@@ -10,5 +11,6 @@ spec:
       image: busybox
       tty: true
       stdin: true
-  nodeSelector:
-    device: pi
+      
+  nodeSelectors:
+      device: pi

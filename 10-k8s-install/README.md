@@ -9,6 +9,7 @@
 
 ### step 1.1: 按照通常的方法，要求加入一个kubernetes.repo的源:
 
+centos:
 ```
 cat <<EOF > /etc/yum.repos.d/kubernetes.repo
 [kubernetes]
@@ -24,12 +25,43 @@ yum clean all
 yum makecache
 ```
 
+ubuntu:
+```
+sudo apt-get update
+sudo apt-get install apt-transport-https ca-certificates -y
+
+cat /etc/apt/sources.list
+# 系统安装源
+deb http://mirrors.aliyun.com/ubuntu/ xenial main restricted
+deb http://mirrors.aliyun.com/ubuntu/ xenial-updates main restricted
+deb http://mirrors.aliyun.com/ubuntu/ xenial universe
+deb http://mirrors.aliyun.com/ubuntu/ xenial-updates universe
+deb http://mirrors.aliyun.com/ubuntu/ xenial multiverse
+deb http://mirrors.aliyun.com/ubuntu/ xenial-updates multiverse
+deb http://mirrors.aliyun.com/ubuntu/ xenial-backports main restricted universe multiverse
+# kubeadm及kubernetes组件安装源
+deb https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial main
+
+cat <<EOF > /etc/apt/sources.list.d/kubernetes.list
+deb http://mirrors.ustc.edu.cn/kubernetes/apt kubernetes-xenial main
+EOF
+
+sudo apt-get update
+apt-get install docker.io
+apt-get install -y kubelet kubeadm kubectl --allow-unauthenticated
+
+```
+
 安装 kubeadm和kubelet应该成功：
 ```
+# centos
 yum -y install kubelet kubeadm kubectl 
+
+# in ubuntu
+# apt-get install -y kubelet kubeadm kubectl 
 kubelet --version
 ```
-注意我这里的版本是 v1.12.1，记下这版本号，下面会用。
+注意我这里的版本是 v1.12.2，记下这版本号，下面会用。
 
 ### step 1.2: 配置k8s.gcr.io的镜像
 
@@ -37,7 +69,7 @@ kubelet --version
 
 脚本是：
 ```
-VERSION=v1.12.1
+VERSION=v1.12.2
 ETCD_VERSION=3.2.24
 COREDNS_VERSION=1.2.2
 PAUSE_VERSION=3.1
@@ -65,8 +97,9 @@ docker tag ${MY_REGISTRY}/pause:${PAUSE_VERSION} k8s.gcr.io/pause:${PAUSE_VERSIO
 
 ### step 1.3： 使用kubeadm初始化kubernetes
 ```
-$ kubeadm reset -f
-$ kubeadm init --pod-network-cidr=172.16.0.0/12
+$ kubeadm init
+
+sudo kubeadm join 139.196.145.43:6443 --token af53r6.co1z7sa33iltultn --discovery-token-ca-cert-hash sha256:24c043a2fb91cf995166e075562064b1608aedc725d132b8a5e5294b24eec213
 ```
 
 并根据kubeadm的数据，配置config
@@ -87,15 +120,10 @@ $ kubectl cluster-info dump | grep -i cidr
 ## step 2: 安装网络插件
 
 ```
-$ kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')&env.IPALLOC_RANGE=20.0.0.0/8"
+$ kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')&env.IPALLOC_RANGE=20.0.0.0/16"
 
-<!-- # or use romana
-$ kubectl apply -f https://raw.githubusercontent.com/romana/romana/master/containerize/specs/romana-kubeadm.yml
-
-$ kubectl delete -f https://raw.githubusercontent.com/romana/romana/master/containerize/specs/romana-kubeadm.yml -->
-
-$ kubectl logs -f weave-net-4bnp5 weave -n kube-system
-$ kubectl exec -n kube-system weave-net-4bnp5 -c weave -- /home/weave/weave --local status
+$ kubectl logs -f weave-net-8hr4s weave -n kube-system
+$ kubectl exec -n kube-system weave-net-9zv45 -c weave -- /home/weave/weave --local status
 
 $ kubectl get pods -w --all-namespaces
 NAMESPACE     NAME                            READY   STATUS             RESTARTS   AGE
@@ -117,8 +145,7 @@ $ kubectl describe pods -n kube-system
 
 ### Step 3.2 加入节点
 ```
-$ kubeadm join 139.196.145.43:6443 --token ohmeqe.z8md9i159lmxl40k --discovery-token-ca-cert-hash sha256:cc05824d2e94e5699fd9164f638d88d027167e94842854e6d5fba9185fb6acc5
-
+$ kubeadm join xxx
 service kubelet status -l
 ```
 

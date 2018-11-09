@@ -38,60 +38,40 @@ echo $orig | sudo tee /boot/cmdline.txt
 echo Please reboot
 ```
 
-如下的脚本在pi上运行
-```
-#!/bin/sh
-
-# This installs the base instructions up to the point of joining / creating a cluster
-
-curl -sSL get.docker.com | sh && \
-  sudo usermod pi -aG docker
-
-sudo dphys-swapfile swapoff && \
-  sudo dphys-swapfile uninstall && \
-  sudo update-rc.d dphys-swapfile remove
-
-curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
-
-echo "deb https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list 
-
-sudo apt-get update -q && \
-sudo apt-get install -qy kubeadm
-
-echo Adding " cgroup_enable=cpuset cgroup_enable=memory" to /boot/cmdline.txt
-
-sudo cp /boot/cmdline.txt /boot/cmdline_backup.txt
-orig="$(head -n1 /boot/cmdline.txt) cgroup_enable=cpuset cgroup_enable=memory"
-
-```
-
-## update the damon json
+## step 4: install docker
 ```
 sudo mkdir -p /etc/docker
 sudo tee /etc/docker/daemon.json <<-'EOF'
 {
-  "registry-mirrors": ["https://877id5g1.mirror.aliyuncs.com"]
+  "registry-mirrors": ["https://877id5g1.mirror.aliyuncs.com"],
+  "bip" : "192.168.0.1/20"
 }
 EOF
 sudo systemctl daemon-reload
 sudo systemctl restart docker
-```
-
-## install sources
 
 ```
-vim /etc/apt/sources.list
-vim /etc/apt/sources.list.d/raspi.list 
 
-version=1.12.1
-kubeadm config images list --kubernetes-version=v${version} --feature-gates CoreDNS=false
-
-sudo apt-get install -y kubelet=${version}-00 kubeadm=${version}-00 kubectl=${version}-00
-sudo apt-mark hold kubelet=${version}-00 kubeadm=${version}-00 kubectl=${version}-00
-sudo systemctl enable kubelet && sudo systemctl start kubelet
-
-kubeadm config images list --kubernetes-version=v${version} --feature-gates CoreDNS=false
+## step 4: worker node 上安装image镜像（pause+proxy）
 ```
+VERSION=v1.12.1
+
+sudo kubeadm config images list --kubernetes-version=${VERSION} --feature-gates CoreDNS=false
+
+COREDNS_VERSION=1.2.2
+PAUSE_VERSION=3.1
+MY_REGISTRY=registry.cn-hangzhou.aliyuncs.com/google_containers
+
+## 拉取镜像
+docker pull ${MY_REGISTRY}/kube-proxy:${VERSION}
+docker pull ${MY_REGISTRY}/pause:${PAUSE_VERSION}
+
+## 添加Tag
+
+docker tag ${MY_REGISTRY}/kube-proxy:${VERSION} k8s.gcr.io/kube-proxy:${VERSION}
+docker tag ${MY_REGISTRY}/pause:${PAUSE_VERSION} k8s.gcr.io/pause:${PAUSE_VERSION}
+```
+
 
 ## join into cluster
 ```
@@ -101,12 +81,7 @@ sudo rm /etc/kubernetes/pki/ca.crt
 sudo kubeadm join -v 2 139.196.145.43:6443 --token kbxdut.s9wx39i7na5k0mu9 --discovery-token-ca-cert-hash sha256:cc05824d2e94e5699fd9164f638d88d027167e94842854e6d5fba9185fb6acc5
 ```
 
+## Troubleshots
+### cni在pi上报错误，找不到cni
 
-sudo cat <<EOT >/etc/cni/net.d/10-weave.conf 
-{
-    "name": "weave",
-    "type": "weave-net",
-    "hairpinMode": true
-}
-EOT
-
+方法：`/var/lib/kubelet/kubeadm-flags.env` 去掉 `--network-plugin=cni`

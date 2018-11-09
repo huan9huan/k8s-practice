@@ -3,7 +3,7 @@
 
 ### 创建一个namespace:pi
 ```
-$ kubectl apply -f ./raspberry-pi/pi-ns.yaml 
+$ kubectl apply -f ./pi-ns.yaml 
 $ kubectl get ns
 NAME               STATUS   AGE
 default            Active   27d
@@ -20,6 +20,7 @@ kubectl label nodes yixin9001 device=pi
 
 ## run pi pod
 ```
+$ kubectl apply -f pi-pod.yaml
 $ kubectl get pods -n pi -o wide
 $ kubectl describe pod pi-pod -n pi
 ```
@@ -27,4 +28,10 @@ $ kubectl describe pod pi-pod -n pi
 ### debug
 ```
 journalctl -u kubelet -f
+```
+
+### pi上删除node上的k8s连接
+```
+sudo rm -fr /etc/kubernetes/
+sudo service kubelet stop
 ```

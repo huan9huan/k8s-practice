@@ -100,6 +100,11 @@ docker tag ${MY_REGISTRY}/pause:${PAUSE_VERSION} k8s.gcr.io/pause:${PAUSE_VERSIO
 $ kubeadm init
 
 sudo kubeadm join 139.196.145.43:6443 --token af53r6.co1z7sa33iltultn --discovery-token-ca-cert-hash sha256:24c043a2fb91cf995166e075562064b1608aedc725d132b8a5e5294b24eec213
+
+# d2
+sudo kubeadm join 138.68.29.180:6443 --token c4dx04.0u7qi9hk6vp1pvwz --discovery-token-unsafe-skip-ca-verification
+
+
 ```
 
 并根据kubeadm的数据，配置config

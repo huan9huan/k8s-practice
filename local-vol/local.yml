@@ -1,0 +1,88 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  namespace: kube-system
+  name: local-sc
+  annotations:
+    storageclass.beta.kubernetes.io/is-default-class: "true"
+  labels:
+    addonmanager.kubernetes.io/mode: Reconcile
+provisioner: kubernetes.io/host-path
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: local-pvc
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Mi
+  storageClassName: local-sc
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: local-pv
+  labels:
+    type: local
+spec:
+  storageClassName: local-sc
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/var/gshop/data"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-svc
+  labels:
+    app: nginx-svc
+spec:
+  ports:
+  - port: 80
+    name: web
+  clusterIP: None
+  selector:
+    app: nginx-app
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: web-ss
+spec:
+  serviceName: web-svc
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-app
+  template:
+    metadata:
+      labels:
+        app: nginx-app
+    spec:
+      initContainers:
+      - name: init-web-app
+        imagePullPolicy: IfNotPresent
+        image: busybox
+        volumeMounts:
+        - name: web-data-vol
+          mountPath: /usr/share/nginx/html/
+        command: ['sh', '-c', 'echo hello $(date) >>  /usr/share/nginx/html/index.html']
+      containers:
+      - name: nginx-app
+        image: nginx:1.9.1
+        ports:
+        - containerPort: 80
+          name: web
+        volumeMounts:
+        - name: web-data-vol
+          mountPath: /usr/share/nginx/html/
+      volumes:
+        - name: web-data-vol
+          persistentVolumeClaim:
+            claimName: local-pvc

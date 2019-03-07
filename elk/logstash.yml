@@ -1,0 +1,73 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-config
+data:
+  database.json: |
+    input {
+            http {
+            }
+    }
+
+    filter {
+            json {
+                    source => "message"
+            }
+    }
+
+    output {
+            elasticsearch {
+                    hosts => ["es-single:9200"]
+            }
+    }
+---
+kind: Deployment
+apiVersion: apps/v1beta2
+metadata:
+  labels:
+    elastic-app: logstash
+  name: logstash
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      elastic-app: logstash
+  template:
+    metadata:
+      labels:
+        elastic-app: logstash
+    spec:
+      containers:
+        - name: logstash
+          image: docker.elastic.co/logstash/logstash:6.2.2
+          volumeMounts:
+            - mountPath: /usr/share/logstash/pipeline
+              name: logstash-conf-volume
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          env:
+            - name: "XPACK_MONITORING_ELASTICSEARCH_URL"
+              value: "http://es-single:9200"
+          securityContext:
+            privileged: true
+      volumes:
+        - name: logstash-conf-volume
+          configMap:
+            name: logstash-config
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    elastic-app: logstash
+  name: logstash-service
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    elastic-app: logstash
+  type: NodePort

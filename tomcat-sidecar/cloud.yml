@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tomcat-deployment
+  labels:
+    app: tomcat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tomcat
+  template:
+    metadata:
+      labels:
+        app: tomcat
+    spec:
+      initContainers:
+      - name: prepare-tomcat
+        image: busybox
+        volumeMounts:
+        - name: app-vol
+          mountPath: /root/apache-tomcat-7.0.42-v2/webapps
+        - name: build-vol
+          mountPath: /root/apache-tomcat-7.0.42-v2/webapps/build
+        command: 
+        - sh
+        - '-c'
+        - |
+          cd /root/apache-tomcat-7.0.42-v2/webapps;
+          cp build/tracker_cloud-iteration-0129-SNAPSHOT.war ROOT.war;
+
+      containers:
+      - name: tomcat
+        image: resouer/mytomcat:7.0
+        ports:
+        - containerPort: 8080
+        command: ["sh","-c","/root/apache-tomcat-7.0.42-v2/bin/start.sh"]
+        volumeMounts:
+        - name: app-vol
+          mountPath: /root/apache-tomcat-7.0.42-v2/webapps
+
+      volumes:
+        - name: app-vol
+          emptyDir: {}
+        - name: build-vol
+          hostPath:
+            path: /Users/alhuang/work/tracker_cloud/target
+            type: Directory
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: tomcat-service
+spec:
+  selector:
+    app: tomcat
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+    nodePort: 32000
+  type: NodePort
